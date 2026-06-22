@@ -1,608 +1,1583 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>BLINK · MORSE</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
-<style>
-  :root {
-    --bg:       #050a0e;
-    --panel:    #0a1520;
-    --border:   #0f3a52;
-    --cyan:     #00e5ff;
-    --green:    #00ff9d;
-    --amber:    #ffb300;
-    --red:      #ff1744;
-    --dim:      #1a3a50;
-    --text:     #c8e8f0;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BLINK·MORSE — Neural Interface</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Rajdhani:wght@300;400;500;600;700&family=Teko:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #02050a;
+        --bg2: #060d14;
+        --panel: #080f18;
+        --panel2: #0b1520;
+        --border: rgba(0, 200, 255, 0.12);
+        --border2: rgba(0, 200, 255, 0.25);
+        --cyan: #00c8ff;
+        --cyan2: #00eaff;
+        --green: #00ff94;
+        --green2: #39ffb0;
+        --amber: #ffb800;
+        --amber2: #ffd34d;
+        --red: #ff2d55;
+        --red2: #ff6b85;
+        --purple: #9d4edd;
+        --dim: #0d1e2e;
+        --text: #8ab4c8;
+        --text2: #c0dce8;
+        --white: #e8f4fa;
+        --glow-c: rgba(0, 200, 255, 0.15);
+        --glow-g: rgba(0, 255, 148, 0.15);
+        --glow-a: rgba(255, 184, 0, 0.15);
+        --glow-r: rgba(255, 45, 85, 0.2);
+      }
 
-  * { margin:0; padding:0; box-sizing:border-box; }
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow-x: hidden;
-  }
+      html {
+        scroll-behavior: smooth;
+      }
 
-  /* ── Scanline overlay ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,229,255,0.015) 2px,
-      rgba(0,229,255,0.015) 4px
-    );
-    pointer-events: none;
-    z-index: 1000;
-  }
+      body {
+        background: var(--bg);
+        color: var(--text2);
+        font-family: "Space Mono", monospace;
+        min-height: 100vh;
+        overflow-x: hidden;
+        cursor: crosshair;
+      }
 
-  /* ── Grid bg ── */
-  body::after {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-  }
+      /* ══ NOISE + GRID TEXTURE ══ */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 3px,
+            rgba(0, 200, 255, 0.012) 3px,
+            rgba(0, 200, 255, 0.012) 4px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 3px,
+            rgba(0, 200, 255, 0.005) 3px,
+            rgba(0, 200, 255, 0.005) 4px
+          );
+        pointer-events: none;
+        z-index: 1000;
+        animation: scanline-drift 8s linear infinite;
+      }
+      @keyframes scanline-drift {
+        0% {
+          background-position: 0 0;
+        }
+        100% {
+          background-position: 0 80px;
+        }
+      }
 
-  header {
-    width: 100%;
-    padding: 24px 40px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    position: relative;
-  }
+      /* ══ RADIAL GLOW ══ */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 60% 40% at 20% 50%,
+            rgba(0, 200, 255, 0.04) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 40% 60% at 80% 30%,
+            rgba(0, 255, 148, 0.03) 0%,
+            transparent 70%
+          ),
+          linear-gradient(180deg, rgba(0, 200, 255, 0.03) 0%, transparent 30%);
+        pointer-events: none;
+        z-index: 0;
+      }
 
-  header h1 {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.6rem;
-    font-weight: 900;
-    letter-spacing: 0.2em;
-    color: var(--cyan);
-    text-shadow: 0 0 20px rgba(0,229,255,0.5);
-  }
+      /* ══ HEADER ══ */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        width: 100%;
+        padding: 0 40px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(2, 5, 10, 0.85);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid var(--border2);
+        box-shadow:
+          0 1px 0 rgba(0, 200, 255, 0.08),
+          0 8px 32px rgba(0, 0, 0, 0.6);
+      }
 
-  header h1 span { color: var(--green); }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
 
-  .header-badge {
-    font-size: 0.7rem;
-    color: var(--green);
-    border: 1px solid var(--green);
-    padding: 4px 12px;
-    border-radius: 2px;
-    letter-spacing: 0.15em;
-    animation: pulse-border 2s infinite;
-  }
+      .logo {
+        font-family: "Teko", sans-serif;
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        color: var(--cyan2);
+        text-shadow:
+          0 0 24px rgba(0, 234, 255, 0.6),
+          0 0 60px rgba(0, 200, 255, 0.2);
+        line-height: 1;
+      }
+      .logo em {
+        color: var(--green);
+        font-style: normal;
+      }
 
-  @keyframes pulse-border {
-    0%,100% { box-shadow: 0 0 4px rgba(0,255,157,0.3); }
-    50%      { box-shadow: 0 0 12px rgba(0,255,157,0.7); }
-  }
+      .logo-sub {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.35em;
+        color: var(--text);
+        opacity: 0.6;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
 
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 20px;
-    width: 100%;
-    max-width: 1200px;
-    padding: 24px 24px;
-  }
+      .header-center {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.3em;
+        color: var(--text);
+        opacity: 0.45;
+        text-transform: uppercase;
+      }
 
-  /* ── Camera Panel ── */
-  .camera-wrap {
-    position: relative;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    border-radius: 4px;
-    overflow: hidden;
-  }
+      .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 255, 148, 0.07);
+        border: 1px solid rgba(0, 255, 148, 0.3);
+        padding: 5px 14px;
+        border-radius: 2px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        color: var(--green);
+        text-transform: uppercase;
+      }
+      .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: live-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes live-pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.7);
+        }
+      }
 
-  .camera-wrap::before {
-    content: 'CAMERA FEED';
-    position: absolute; top: 0; left: 0;
-    background: var(--border);
-    color: var(--cyan);
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    padding: 4px 12px;
-    z-index: 10;
-  }
+      /* ══ MAIN LAYOUT ══ */
+      .main {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        grid-template-rows: auto auto;
+        gap: 0;
+        width: 100%;
+        min-height: calc(100vh - 64px);
+      }
 
-  .camera-wrap img {
-    width: 100%;
-    display: block;
-    margin-top: 24px;
-    filter: brightness(0.95) contrast(1.1);
-  }
+      /* ══ LEFT COLUMN ══ */
+      .left-col {
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
 
-  /* Eye status indicator overlay */
-  .eye-indicator {
-    position: absolute;
-    bottom: 12px; right: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(5,10,14,0.8);
-    border: 1px solid var(--border);
-    padding: 6px 14px;
-    border-radius: 2px;
-  }
+      /* ══ CAMERA ZONE ══ */
+      .camera-zone {
+        flex: 1;
+        position: relative;
+        background: #020810;
+        overflow: hidden;
+      }
 
-  .eye-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
-    transition: all 0.1s;
-  }
+      .cam-header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(
+          180deg,
+          rgba(2, 8, 16, 0.95) 0%,
+          transparent 100%
+        );
+      }
+      .cam-label {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.35em;
+        color: var(--cyan);
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .cam-label::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 8px var(--cyan);
+        animation: live-pulse 1.4s ease-in-out infinite;
+      }
 
-  .eye-dot.blink {
-    background: var(--red);
-    box-shadow: 0 0 12px var(--red);
-  }
+      .cam-fps {
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        color: var(--text);
+        opacity: 0.4;
+      }
 
-  .eye-label { font-size: 0.7rem; letter-spacing: 0.1em; }
+      .camera-feed {
+        width: 100%;
+        display: block;
+        filter: brightness(1.05) contrast(1.08) saturate(0.9);
+        transition: filter 0.15s;
+      }
+      .camera-feed.blinking {
+        filter: brightness(1.3) contrast(1.2) saturate(1.1) hue-rotate(-5deg);
+      }
 
-  /* ── Right Panel ── */
-  .right-panel { display: flex; flex-direction: column; gap: 16px; }
+      /* Corner brackets */
+      .corner {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        z-index: 25;
+      }
+      .corner.tl {
+        top: 36px;
+        left: 10px;
+        border-top: 2px solid var(--cyan);
+        border-left: 2px solid var(--cyan);
+      }
+      .corner.tr {
+        top: 36px;
+        right: 10px;
+        border-top: 2px solid var(--cyan);
+        border-right: 2px solid var(--cyan);
+      }
+      .corner.bl {
+        bottom: 10px;
+        left: 10px;
+        border-bottom: 2px solid var(--cyan);
+        border-left: 2px solid var(--cyan);
+      }
+      .corner.br {
+        bottom: 10px;
+        right: 10px;
+        border-bottom: 2px solid var(--cyan);
+        border-right: 2px solid var(--cyan);
+      }
 
-  .panel-box {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    position: relative;
-  }
+      /* Blink flash overlay */
+      .blink-flash {
+        position: absolute;
+        inset: 0;
+        z-index: 15;
+        background: rgba(0, 200, 255, 0.06);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.08s;
+      }
+      .blink-flash.active {
+        opacity: 1;
+      }
 
-  .panel-box .box-label {
-    position: absolute; top: -1px; left: 12px;
-    background: var(--bg);
-    color: var(--cyan);
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    padding: 0 8px;
-    transform: translateY(-50%);
-  }
+      /* EYE STATUS OVERLAY */
+      .eye-overlay {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(2, 5, 10, 0.8);
+        border: 1px solid var(--border2);
+        padding: 8px 16px;
+        border-radius: 2px;
+        backdrop-filter: blur(10px);
+      }
+      .eye-ring {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid var(--green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 0 10px rgba(0, 255, 148, 0.3),
+          inset 0 0 10px rgba(0, 255, 148, 0.05);
+        transition: all 0.1s;
+        position: relative;
+      }
+      .eye-ring::after {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        transition: all 0.1s;
+      }
+      .eye-ring.blink {
+        border-color: var(--red);
+        box-shadow:
+          0 0 16px rgba(255, 45, 85, 0.5),
+          inset 0 0 10px rgba(255, 45, 85, 0.1);
+      }
+      .eye-ring.blink::after {
+        background: var(--red);
+        box-shadow: 0 0 12px var(--red);
+        transform: scaleY(0.15);
+        border-radius: 2px;
+      }
+      .eye-status-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .eye-state {
+        font-family: "Teko", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        line-height: 1;
+        color: var(--green);
+        text-shadow: 0 0 8px var(--green);
+        transition:
+          color 0.1s,
+          text-shadow 0.1s;
+      }
+      .eye-state.blink {
+        color: var(--red);
+        text-shadow: 0 0 8px var(--red);
+      }
+      .eye-ear {
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        color: var(--text);
+        opacity: 0.5;
+      }
 
-  /* ── EAR Meter ── */
-  .ear-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-  }
+      /* ══ WAVEFORM / EAR VISUALIZER ══ */
+      .ear-zone {
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-  .ear-bar-track {
-    flex: 1;
-    height: 8px;
-    background: var(--dim);
-    border-radius: 4px;
-    overflow: hidden;
-  }
+      .ear-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ear-title {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        color: var(--cyan);
+        opacity: 0.7;
+        text-transform: uppercase;
+      }
+      .ear-number {
+        font-family: "Teko", sans-serif;
+        font-size: 1.3rem;
+        font-weight: 400;
+        color: var(--cyan2);
+        text-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
+        letter-spacing: 0.05em;
+      }
 
-  .ear-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--red), var(--amber), var(--green));
-    border-radius: 4px;
-    transition: width 0.1s;
-  }
+      .ear-track {
+        height: 6px;
+        background: var(--dim);
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+      }
+      .ear-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.08s ease;
+        background: linear-gradient(
+          90deg,
+          var(--red) 0%,
+          var(--amber) 40%,
+          var(--green) 100%
+        );
+        position: relative;
+      }
+      .ear-fill::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 12px;
+        background: white;
+        border-radius: 2px;
+        opacity: 0.8;
+        box-shadow: 0 0 6px white;
+      }
 
-  .ear-value {
-    font-size: 1.1rem;
-    color: var(--cyan);
-    min-width: 48px;
-    text-align: right;
-  }
+      .ear-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.55rem;
+        letter-spacing: 0.1em;
+        color: var(--text);
+        opacity: 0.35;
+        font-family: "Rajdhani", sans-serif;
+      }
 
-  /* ── Morse Buffer ── */
-  .morse-symbols {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-    min-height: 44px;
-    align-items: center;
-  }
+      /* ══ SIGNAL HISTORY (mini waveform) ══ */
+      .waveform-container {
+        padding: 0 20px 16px;
+        background: var(--panel);
+        border-top: 1px solid var(--border);
+      }
+      .waveform-label {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.3em;
+        color: var(--text);
+        opacity: 0.35;
+        text-transform: uppercase;
+        padding: 8px 0 4px;
+      }
+      #waveCanvas {
+        width: 100%;
+        height: 40px;
+        display: block;
+        opacity: 0.7;
+      }
 
-  .symbol {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--amber);
-    text-shadow: 0 0 10px rgba(255,179,0,0.6);
-    animation: pop 0.2s ease;
-  }
+      /* ══ LEGEND ══ */
+      .legend-zone {
+        padding: 16px 20px;
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
 
-  @keyframes pop {
-    0%   { transform: scale(1.8); opacity:0.5; }
-    100% { transform: scale(1);   opacity:1; }
-  }
+      .legend-card {
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        padding: 10px 8px;
+        border-radius: 2px;
+        text-align: center;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .legend-card:hover {
+        border-color: var(--border2);
+        box-shadow: 0 0 12px var(--glow-c);
+      }
+      .legend-glyph {
+        font-family: "Teko", sans-serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--amber);
+        text-shadow: 0 0 12px rgba(255, 184, 0, 0.5);
+        line-height: 1.2;
+      }
+      .legend-desc {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.58rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        color: var(--text);
+        opacity: 0.55;
+        text-transform: uppercase;
+        margin-top: 3px;
+        line-height: 1.4;
+      }
 
-  /* ── Current Letter ── */
-  .letter-display {
-    text-align: center;
-    margin-top: 8px;
-  }
+      /* ══ RIGHT COLUMN ══ */
+      .right-col {
+        background: var(--bg2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-  .letter-big {
-    font-family: 'Orbitron', monospace;
-    font-size: 3rem;
-    font-weight: 900;
-    color: var(--green);
-    text-shadow: 0 0 30px rgba(0,255,157,0.7);
-    line-height: 1;
-    min-height: 3.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+      /* ══ MORSE INPUT PANEL ══ */
+      .input-panel {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+        position: relative;
+        overflow: hidden;
+      }
+      .input-panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--cyan),
+          transparent
+        );
+        opacity: 0.4;
+      }
 
-  .letter-code {
-    color: var(--amber);
-    font-size: 1.2rem;
-    letter-spacing: 0.3em;
-    min-height: 1.5rem;
-    margin-top: 4px;
-  }
+      .panel-title {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.35em;
+        color: var(--cyan);
+        opacity: 0.7;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--border2), transparent);
+      }
 
-  /* ── Output ── */
-  .decoded-output {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.15em;
-    word-break: break-all;
-    min-height: 60px;
-    padding: 12px;
-    background: rgba(0,229,255,0.03);
-    border: 1px solid var(--dim);
-    border-radius: 2px;
-    margin-top: 10px;
-    text-shadow: 0 0 20px rgba(255,255,255,0.3);
-  }
+      /* MORSE SYMBOLS DISPLAY */
+      .morse-symbols {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 52px;
+        align-items: center;
+        padding: 10px 12px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        position: relative;
+        overflow: hidden;
+      }
+      .morse-symbols::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 200, 255, 0.2),
+          transparent
+        );
+      }
 
-  .cursor-blink {
-    display: inline-block;
-    width: 3px; height: 1.4em;
-    background: var(--cyan);
-    vertical-align: text-bottom;
-    animation: blink-cur 1s step-end infinite;
-  }
+      .sym-dot,
+      .sym-dash {
+        font-family: "Teko", sans-serif;
+        font-weight: 700;
+        line-height: 1;
+        animation: sym-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        cursor: default;
+      }
+      .sym-dot {
+        font-size: 2.2rem;
+        color: var(--cyan2);
+        text-shadow: 0 0 16px rgba(0, 234, 255, 0.7);
+      }
+      .sym-dash {
+        font-size: 1.6rem;
+        color: var(--amber);
+        text-shadow: 0 0 16px rgba(255, 184, 0, 0.7);
+        margin-bottom: 2px;
+      }
 
-  @keyframes blink-cur {
-    0%,100% { opacity:1; } 50% { opacity:0; }
-  }
+      @keyframes sym-in {
+        0% {
+          transform: scale(2.5) translateY(-8px);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1) translateY(0);
+          opacity: 1;
+        }
+      }
 
-  /* ── Status Message ── */
-  .status-msg {
-    font-size: 0.75rem;
-    color: var(--cyan);
-    opacity: 0.8;
-    margin-top: 8px;
-    min-height: 1rem;
-    letter-spacing: 0.05em;
-  }
+      .sym-empty {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        color: var(--text);
+        opacity: 0.2;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
 
-  /* ── Buttons ── */
-  .btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 4px;
-  }
+      /* BIG LETTER */
+      .letter-zone {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+      }
+      .letter-giant {
+        font-family: "Teko", sans-serif;
+        font-size: 4rem;
+        font-weight: 600;
+        color: var(--green);
+        text-shadow:
+          0 0 40px rgba(0, 255, 148, 0.7),
+          0 0 80px rgba(0, 255, 148, 0.2);
+        line-height: 1;
+        min-width: 56px;
+        text-align: center;
+        transition: all 0.15s;
+        letter-spacing: 0.05em;
+      }
+      .letter-giant.flash {
+        animation: letter-flash 0.25s ease;
+      }
+      @keyframes letter-flash {
+        0% {
+          color: white;
+          text-shadow: 0 0 60px white;
+        }
+        100% {
+          color: var(--green);
+          text-shadow: 0 0 40px rgba(0, 255, 148, 0.7);
+        }
+      }
+      .letter-meta {
+        flex: 1;
+      }
+      .letter-code-disp {
+        font-family: "Space Mono", monospace;
+        font-size: 1.1rem;
+        letter-spacing: 0.4em;
+        color: var(--amber);
+        text-shadow: 0 0 10px rgba(255, 184, 0, 0.4);
+        min-height: 1.3rem;
+      }
+      .letter-hint {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        color: var(--text);
+        opacity: 0.35;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
 
-  .btn {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    padding: 10px;
-    border: 1px solid;
-    background: transparent;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.15s;
-    text-transform: uppercase;
-  }
+      /* STATUS MSG */
+      .status-strip {
+        margin-top: 10px;
+        padding: 6px 12px;
+        background: rgba(0, 200, 255, 0.04);
+        border-left: 2px solid var(--cyan);
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        color: var(--cyan);
+        opacity: 0.7;
+        text-transform: uppercase;
+        transition: opacity 0.2s;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+      }
 
-  .btn-clear {
-    color: var(--red);
-    border-color: var(--red);
-  }
-  .btn-clear:hover {
-    background: rgba(255,23,68,0.15);
-    box-shadow: 0 0 12px rgba(255,23,68,0.3);
-  }
+      /* ══ DECODED OUTPUT PANEL ══ */
+      .output-panel {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: var(--bg2);
+      }
 
-  .btn-bs {
-    color: var(--amber);
-    border-color: var(--amber);
-  }
-  .btn-bs:hover {
-    background: rgba(255,179,0,0.15);
-    box-shadow: 0 0 12px rgba(255,179,0,0.3);
-  }
+      .decoded-box {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border2);
+        border-radius: 2px;
+        padding: 14px 16px;
+        min-height: 80px;
+        position: relative;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+      }
+      .decoded-box.new-letter {
+        box-shadow:
+          0 0 24px rgba(0, 255, 148, 0.2),
+          inset 0 0 24px rgba(0, 255, 148, 0.04);
+      }
+      .decoded-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 255, 148, 0.3),
+          transparent
+        );
+      }
 
-  /* ── Morse Reference Table ── */
-  .morse-table {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    margin-top: 10px;
-    max-height: 160px;
-    overflow-y: auto;
-  }
+      .decoded-text {
+        font-family: "Teko", sans-serif;
+        font-size: 2.2rem;
+        font-weight: 500;
+        color: var(--white);
+        letter-spacing: 0.12em;
+        word-break: break-all;
+        line-height: 1.2;
+      }
+      .cursor-blink {
+        display: inline-block;
+        width: 3px;
+        height: 2rem;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        margin-left: 3px;
+        vertical-align: middle;
+        animation: cursor-blink 1s step-end infinite;
+        border-radius: 1px;
+      }
+      @keyframes cursor-blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
 
-  .morse-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(0,229,255,0.03);
-    border: 1px solid var(--dim);
-    padding: 3px 6px;
-    border-radius: 2px;
-    font-size: 0.7rem;
-  }
+      .decoded-placeholder {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        color: var(--text);
+        opacity: 0.2;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
 
-  .morse-row .ch {
-    color: var(--green);
-    font-weight: bold;
-    min-width: 10px;
-  }
+      /* COPY AREA */
+      .copy-strip {
+        display: flex;
+        gap: 8px;
+      }
 
-  .morse-row .cd {
-    color: var(--amber);
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-  }
+      .btn {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        border: 1px solid;
+        border-radius: 2px;
+        padding: 9px 16px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .btn:hover::before {
+        opacity: 0.07;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
 
-  /* ── Legend ── */
-  .legend {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+      .btn-bs {
+        color: var(--amber);
+        border-color: rgba(255, 184, 0, 0.35);
+        background: rgba(255, 184, 0, 0.05);
+      }
+      .btn-bs:hover {
+        border-color: var(--amber);
+        box-shadow: 0 0 12px var(--glow-a);
+      }
 
-  .legend-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 8px 14px;
-    border-radius: 2px;
-  }
+      .btn-copy {
+        color: var(--cyan);
+        border-color: rgba(0, 200, 255, 0.3);
+        background: rgba(0, 200, 255, 0.05);
+      }
+      .btn-copy:hover {
+        border-color: var(--cyan);
+        box-shadow: 0 0 12px var(--glow-c);
+      }
 
-  .legend-symbol {
-    font-family: 'Orbitron', monospace;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--amber);
-  }
+      .btn-clear {
+        color: var(--red);
+        border-color: rgba(255, 45, 85, 0.3);
+        background: rgba(255, 45, 85, 0.05);
+      }
+      .btn-clear:hover {
+        border-color: var(--red);
+        box-shadow: 0 0 12px var(--glow-r);
+      }
 
-  .legend-label {
-    font-size: 0.6rem;
-    color: var(--text);
-    letter-spacing: 0.1em;
-    text-align: center;
-    opacity: 0.7;
-  }
+      /* ══ MORSE REFERENCE PANEL ══ */
+      .ref-panel {
+        padding: 16px 20px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+        flex-shrink: 0;
+      }
 
-  /* ── Full-width bottom row ── */
-  .bottom-row {
-    width: 100%;
-    max-width: 1200px;
-    padding: 0 24px 24px;
-  }
+      .morse-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 4px;
+        margin-top: 10px;
+        max-height: 180px;
+        overflow-y: auto;
+      }
+      .morse-grid::-webkit-scrollbar {
+        width: 3px;
+      }
+      .morse-grid::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .morse-grid::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      .morse-cell {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        padding: 5px 4px;
+        text-align: center;
+        cursor: default;
+        transition: all 0.15s;
+      }
+      .morse-cell:hover,
+      .morse-cell.highlight {
+        border-color: var(--amber);
+        background: rgba(255, 184, 0, 0.07);
+        box-shadow: 0 0 8px var(--glow-a);
+      }
+      .morse-cell .mc-ch {
+        font-family: "Teko", sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text2);
+        line-height: 1;
+      }
+      .morse-cell .mc-code {
+        font-family: "Space Mono", monospace;
+        font-size: 0.42rem;
+        color: var(--amber);
+        opacity: 0.7;
+        letter-spacing: 0.05em;
+        word-break: break-all;
+        margin-top: 2px;
+      }
 
-  .flash {
-    animation: flash-anim 0.3s ease;
-  }
-  @keyframes flash-anim {
-    0%   { background: rgba(0,255,157,0.2); }
-    100% { background: transparent; }
-  }
-</style>
-</head>
-<body>
+      /* ══ STATS BAR ══ */
+      .stats-bar {
+        padding: 10px 20px;
+        background: var(--bg);
+        border-top: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        flex-shrink: 0;
+      }
+      .stat-item {
+        text-align: center;
+        padding: 8px 4px;
+      }
+      .stat-val {
+        font-family: "Teko", sans-serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--cyan2);
+        text-shadow: 0 0 10px rgba(0, 234, 255, 0.3);
+        letter-spacing: 0.05em;
+        line-height: 1;
+      }
+      .stat-lbl {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.15em;
+        color: var(--text);
+        opacity: 0.4;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
 
-<header>
-  <h1>BLINK<span>·</span>MORSE</h1>
-  <div style="font-size:0.7rem; color:var(--text); opacity:0.5; letter-spacing:0.1em">
-    EYE-BLINK → MORSE CODE → TEXT
-  </div>
-  <div class="header-badge">● LIVE</div>
-</header>
+      /* ══ NOTIFICATION TOAST ══ */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(0, 200, 255, 0.1);
+        border: 1px solid var(--cyan);
+        padding: 10px 24px;
+        border-radius: 2px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        color: var(--cyan);
+        text-transform: uppercase;
+        opacity: 0;
+        transition: all 0.3s;
+        pointer-events: none;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 0 24px rgba(0, 200, 255, 0.2);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
 
-<div class="main-grid">
+      /* ══ PROGRESS RING for blink duration ══ */
+      .blink-timer {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        z-index: 30;
+      }
+      .blink-timer.active {
+        display: block;
+      }
+      .blink-timer svg {
+        filter: drop-shadow(0 0 12px var(--red));
+      }
 
-  <!-- Camera -->
-  <div>
-    <div class="camera-wrap">
-      <img src="/video_feed" alt="camera feed" id="cam"/>
-      <div class="eye-indicator">
-        <div class="eye-dot" id="eyeDot"></div>
-        <span class="eye-label" id="eyeLabel">OPEN</span>
-      </div>
-    </div>
+      /* ══ RESPONSIVE ══ */
+      @media (max-width: 900px) {
+        .main {
+          grid-template-columns: 1fr;
+        }
+        .right-col {
+          border-top: 1px solid var(--border);
+        }
+        .legend-zone {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .morse-grid {
+          grid-template-columns: repeat(5, 1fr);
+        }
+        header {
+          padding: 0 16px;
+        }
+        .header-center {
+          display: none;
+        }
+      }
+    </style>
+  </head>
 
-    <!-- Legend -->
-    <div class="legend" style="margin-top:16px">
-      <div class="legend-item">
-        <div class="legend-symbol">·</div>
-        <div class="legend-label">SHORT BLINK<br/>&lt; 300ms = DOT</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-symbol">—</div>
-        <div class="legend-label">LONG BLINK<br/>&gt; 300ms = DASH</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-symbol" style="color:var(--cyan)">1.5s</div>
-        <div class="legend-label">PAUSE<br/>= NEW LETTER</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-symbol" style="color:var(--green)">3s</div>
-        <div class="legend-label">LONG PAUSE<br/>= WORD SPACE</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right Panel -->
-  <div class="right-panel">
-
-    <!-- EAR Meter -->
-    <div class="panel-box">
-      <span class="box-label">EYE ASPECT RATIO</span>
-      <div class="ear-row" style="margin-top:12px">
-        <div class="ear-bar-track">
-          <div class="ear-bar-fill" id="earBar" style="width:60%"></div>
+  <body>
+    <!-- ══ HEADER ══ -->
+    <header>
+      <div class="header-left">
+        <div>
+          <div class="logo">BLINK<em>·</em>MORSE</div>
+          <div class="logo-sub">Neural Interface v2.0</div>
         </div>
-        <div class="ear-value" id="earVal">0.30</div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.6rem;opacity:0.5;margin-top:4px">
-        <span>BLINK ←</span>
-        <span>threshold: 0.25</span>
-        <span>→ OPEN</span>
+      <div class="header-center">Eye-Blink → Morse Code → Text</div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE FEED
       </div>
+    </header>
+
+    <!-- ══ MAIN ══ -->
+    <div class="main">
+      <!-- ══ LEFT COLUMN ══ -->
+      <div class="left-col">
+        <!-- Camera -->
+        <div class="camera-zone">
+          <div class="cam-header">
+            <div class="cam-label">Camera Feed</div>
+            <div class="cam-fps" id="camFps">30 fps</div>
+          </div>
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="blink-flash" id="blinkFlash"></div>
+          <img
+            src="/video_feed"
+            alt="camera feed"
+            id="camFeed"
+            class="camera-feed"
+          />
+          <div class="eye-overlay">
+            <div class="eye-ring" id="eyeRing"></div>
+            <div class="eye-status-text">
+              <div class="eye-state" id="eyeState">OPEN</div>
+              <div class="eye-ear" id="eyeEar">EAR —</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EAR meter -->
+        <div class="ear-zone">
+          <div class="ear-header">
+            <div class="ear-title">Eye Aspect Ratio</div>
+            <div class="ear-number" id="earVal">0.000</div>
+          </div>
+          <div class="ear-track">
+            <div class="ear-fill" id="earFill" style="width: 60%"></div>
+          </div>
+          <div class="ear-labels">
+            <span>BLINK ←</span>
+            <span>THRESHOLD: 0.25</span>
+            <span>→ OPEN</span>
+          </div>
+        </div>
+
+        <!-- Waveform -->
+        <div class="waveform-container">
+          <div class="waveform-label">EAR History</div>
+          <canvas id="waveCanvas"></canvas>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-zone">
+          <div class="legend-card">
+            <div class="legend-glyph" style="color: var(--cyan2)">·</div>
+            <div class="legend-desc">Short blink<br />&lt; 1s = DOT</div>
+          </div>
+          <div class="legend-card">
+            <div class="legend-glyph">—</div>
+            <div class="legend-desc">Long blink<br />&gt; 1s = DASH</div>
+          </div>
+          <div class="legend-card">
+            <div
+              class="legend-glyph"
+              style="color: var(--cyan); font-size: 1.2rem"
+            >
+              2.0s
+            </div>
+            <div class="legend-desc">Pause<br />= New Letter</div>
+          </div>
+          <div class="legend-card">
+            <div
+              class="legend-glyph"
+              style="color: var(--green); font-size: 1.2rem"
+            >
+              3.0s
+            </div>
+            <div class="legend-desc">Long Pause<br />= Word Space</div>
+          </div>
+        </div>
+      </div>
+      <!-- /left-col -->
+
+      <!-- ══ RIGHT COLUMN ══ -->
+      <div class="right-col">
+        <!-- Input Panel -->
+        <div class="input-panel">
+          <div class="panel-title">Current Input</div>
+
+          <div class="morse-symbols" id="morseSymbols">
+            <span class="sym-empty">Waiting for blinks...</span>
+          </div>
+
+          <div class="letter-zone">
+            <div class="letter-giant" id="letterGiant">—</div>
+            <div class="letter-meta">
+              <div class="letter-code-disp" id="letterCode"></div>
+              <div class="letter-hint" id="letterHint">Blink to input</div>
+            </div>
+          </div>
+
+          <div class="status-strip" id="statusStrip">
+            Position your face in the camera
+          </div>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="output-panel">
+          <div class="panel-title">Decoded Text</div>
+
+          <div class="decoded-box" id="decodedBox">
+            <span class="decoded-placeholder" id="decodedPlaceholder"
+              >Start blinking to decode...</span
+            >
+            <div class="decoded-text" id="decodedText" style="display: none">
+              <span id="decodedContent"></span
+              ><span class="cursor-blink"></span>
+            </div>
+          </div>
+
+          <div class="copy-strip">
+            <button class="btn btn-bs" onclick="backspace()">⌫ Back</button>
+            <button class="btn btn-copy" onclick="copyText()">⊕ Copy</button>
+            <button class="btn btn-clear" onclick="clearAll()">✕ Clear</button>
+          </div>
+        </div>
+
+        <!-- Morse Reference -->
+        <div class="ref-panel">
+          <div class="panel-title">Morse Reference</div>
+          <div class="morse-grid" id="morseGrid"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <div class="stat-val" id="statBlinks">0</div>
+            <div class="stat-lbl">Blinks</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" id="statLetters">0</div>
+            <div class="stat-lbl">Letters</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" id="statWords">0</div>
+            <div class="stat-lbl">Words</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" id="statChars">0</div>
+            <div class="stat-lbl">Chars</div>
+          </div>
+        </div>
+      </div>
+      <!-- /right-col -->
     </div>
+    <!-- /main -->
 
-    <!-- Morse buffer -->
-    <div class="panel-box">
-      <span class="box-label">CURRENT INPUT</span>
-      <div class="morse-symbols" id="morseSymbols">
-        <span style="opacity:0.3;font-size:0.8rem">waiting for blinks...</span>
-      </div>
-      <div class="letter-display">
-        <div class="letter-big" id="letterBig">—</div>
-        <div class="letter-code" id="letterCode"></div>
-      </div>
-      <div class="status-msg" id="statusMsg">Position your face in the camera</div>
-    </div>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
 
-    <!-- Decoded output -->
-    <div class="panel-box">
-      <span class="box-label">DECODED TEXT</span>
-      <div class="decoded-output" id="decodedOut">
-        <span id="decodedText"></span><span class="cursor-blink"></span>
-      </div>
-      <div class="btn-row" style="margin-top:12px">
-        <button class="btn btn-bs" onclick="backspace()">⌫ BACKSPACE</button>
-        <button class="btn btn-clear" onclick="clearAll()">✕ CLEAR ALL</button>
-      </div>
-    </div>
+    <script>
+      /* ══ MORSE DATA ══ */
+      const MORSE = {
+        A: ".-",
+        B: "-...",
+        C: "-.-.",
+        D: "-..",
+        E: ".",
+        F: "..-.",
+        G: "--.",
+        H: "....",
+        I: "..",
+        J: ".---",
+        K: "-.-",
+        L: ".-..",
+        M: "--",
+        N: "-.",
+        O: "---",
+        P: ".--.",
+        Q: "--.-",
+        R: ".-.",
+        S: "...",
+        T: "-",
+        U: "..-",
+        V: "...-",
+        W: ".--",
+        X: "-..-",
+        Y: "-.--",
+        Z: "--..",
+        0: "-----",
+        1: ".----",
+        2: "..---",
+        3: "...--",
+        4: "....-",
+        5: ".....",
+        6: "-....",
+        7: "--...",
+        8: "---..",
+        9: "----.",
+      };
+      const MORSE_REV = Object.fromEntries(
+        Object.entries(MORSE).map(([k, v]) => [v, k]),
+      );
 
-    <!-- Morse Reference -->
-    <div class="panel-box">
-      <span class="box-label">MORSE REFERENCE</span>
-      <div class="morse-table" id="morseTable"></div>
-    </div>
+      /* ══ BUILD MORSE GRID ══ */
+      const grid = document.getElementById("morseGrid");
+      Object.entries(MORSE).forEach(([ch, code]) => {
+        const cell = document.createElement("div");
+        cell.className = "morse-cell";
+        cell.dataset.ch = ch;
+        cell.innerHTML = `<div class="mc-ch">${ch}</div><div class="mc-code">${code}</div>`;
+        grid.appendChild(cell);
+      });
 
-  </div>
-</div>
+      /* ══ WAVEFORM ══ */
+      const canvas = document.getElementById("waveCanvas");
+      const ctx = canvas.getContext("2d");
+      const EAR_HISTORY = new Array(120).fill(0.3);
+      const THRESHOLD_Y = 0.25;
 
-<script>
-const MORSE = {
-  'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---',
-  'K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-',
-  'U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',
-  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.'
-};
+      function resizeCanvas() {
+        canvas.width = canvas.offsetWidth * devicePixelRatio;
+        canvas.height = canvas.offsetHeight * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
 
-// Build morse table
-const tbl = document.getElementById('morseTable');
-Object.entries(MORSE).forEach(([ch, code]) => {
-  const d = document.createElement('div');
-  d.className = 'morse-row';
-  d.innerHTML = `<span class="ch">${ch}</span><span class="cd">${code}</span>`;
-  tbl.appendChild(d);
-});
+      function drawWave() {
+        const W = canvas.offsetWidth,
+          H = canvas.offsetHeight;
+        ctx.clearRect(0, 0, W, H);
 
-let lastDecoded = "";
+        const max = 0.5,
+          min = 0;
+        const threshY = H - ((THRESHOLD_Y - min) / (max - min)) * H;
 
-async function fetchState() {
-  try {
-    const res  = await fetch('/state');
-    const data = await res.json();
+        // Threshold line
+        ctx.beginPath();
+        ctx.setLineDash([4, 6]);
+        ctx.strokeStyle = "rgba(255,45,85,0.35)";
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, threshY);
+        ctx.lineTo(W, threshY);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-    // EAR bar
-    const earPct = Math.min(1, data.ear / 0.45) * 100;
-    document.getElementById('earBar').style.width = earPct + '%';
-    document.getElementById('earVal').textContent = data.ear.toFixed(3);
+        // Gradient fill
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, "rgba(0,200,255,0.25)");
+        grad.addColorStop(1, "rgba(0,200,255,0)");
 
-    // Eye dot
-    const dot   = document.getElementById('eyeDot');
-    const label = document.getElementById('eyeLabel');
-    if (data.status === 'BLINK') {
-      dot.classList.add('blink');
-      label.textContent = 'BLINK';
-    } else {
-      dot.classList.remove('blink');
-      label.textContent = 'OPEN';
-    }
+        ctx.beginPath();
+        EAR_HISTORY.forEach((v, i) => {
+          const x = (i / (EAR_HISTORY.length - 1)) * W;
+          const y =
+            H - ((Math.min(max, Math.max(min, v)) - min) / (max - min)) * H;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
 
-    // Morse symbols
-    const symDiv = document.getElementById('morseSymbols');
-    if (data.morse_buffer.length > 0) {
-      symDiv.innerHTML = data.morse_buffer.map(s =>
-        `<span class="symbol">${s === '.' ? '·' : '—'}</span>`
-      ).join('');
-    } else {
-      symDiv.innerHTML = '<span style="opacity:0.3;font-size:0.8rem">waiting for blinks...</span>';
-    }
+        // Line
+        ctx.beginPath();
+        EAR_HISTORY.forEach((v, i) => {
+          const x = (i / (EAR_HISTORY.length - 1)) * W;
+          const y =
+            H - ((Math.min(max, Math.max(min, v)) - min) / (max - min)) * H;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = "rgba(0,200,255,0.7)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
 
-    // Current letter
-    const code = data.current_letter;
-    const ch   = Object.entries(MORSE).find(([k,v]) => v === code)?.[0] || (code ? '?' : '—');
-    document.getElementById('letterBig').textContent  = ch;
-    document.getElementById('letterCode').textContent = code;
+      /* ══ STATE ══ */
+      let lastDecoded = "";
+      let lastStatus = "";
+      let blinkCount = 0;
+      let letterCount = 0;
+      let lastBufLen = 0;
+      let currentHighlight = null;
+      let frameCount = 0;
+      let lastFpsTime = Date.now();
+      let fps = 30;
+      let prevEar = 0;
 
-    // Decoded text
-    if (data.decoded_word !== lastDecoded) {
-      const out = document.getElementById('decodedOut');
-      document.getElementById('decodedText').textContent = data.decoded_word;
-      out.classList.add('flash');
-      setTimeout(() => out.classList.remove('flash'), 300);
-      lastDecoded = data.decoded_word;
-    }
+      /* ══ TOAST ══ */
+      function showToast(msg, dur = 1800) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), dur);
+      }
 
-    // Status message
-    document.getElementById('statusMsg').textContent = data.message;
+      /* ══ HIGHLIGHT MORSE CELL ══ */
+      function highlightCell(ch) {
+        if (currentHighlight) currentHighlight.classList.remove("highlight");
+        if (ch && ch !== "?") {
+          const cell = document.querySelector(`.morse-cell[data-ch="${ch}"]`);
+          if (cell) {
+            cell.classList.add("highlight");
+            currentHighlight = cell;
+          }
+        }
+      }
 
-  } catch(e) {}
-}
+      /* ══ FETCH STATE ══ */
+      async function fetchState() {
+        try {
+          const res = await fetch("/state");
+          const data = await res.json();
 
-async function clearAll() {
-  await fetch('/clear', { method: 'POST' });
-  lastDecoded = "";
-}
+          // FPS estimate
+          frameCount++;
+          const now = Date.now();
+          if (now - lastFpsTime > 1000) {
+            fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+            frameCount = 0;
+            lastFpsTime = now;
+            document.getElementById("camFps").textContent = fps + " fps";
+          }
 
-async function backspace() {
-  await fetch('/backspace', { method: 'POST' });
-}
+          // EAR
+          const ear = data.ear;
+          EAR_HISTORY.push(ear);
+          EAR_HISTORY.shift();
+          prevEar = ear;
+          drawWave();
 
-setInterval(fetchState, 120);
-</script>
-</body>
+          const earPct = Math.min(1, ear / 0.45) * 100;
+          document.getElementById("earFill").style.width = earPct + "%";
+          document.getElementById("earVal").textContent = ear.toFixed(3);
+          document.getElementById("eyeEar").textContent =
+            "EAR " + ear.toFixed(3);
+
+          // Eye ring + state
+          const isBlink = data.status === "BLINK";
+          const ring = document.getElementById("eyeRing");
+          const state = document.getElementById("eyeState");
+          const flash = document.getElementById("blinkFlash");
+          const feed = document.getElementById("camFeed");
+
+          if (isBlink) {
+            ring.classList.add("blink");
+            state.classList.add("blink");
+            state.textContent = "BLINK";
+            flash.classList.add("active");
+            feed.classList.add("blinking");
+          } else {
+            ring.classList.remove("blink");
+            state.classList.remove("blink");
+            state.textContent = "OPEN";
+            flash.classList.remove("active");
+            feed.classList.remove("blinking");
+          }
+
+          // Track blinks
+          if (data.morse_buffer.length > lastBufLen) {
+            blinkCount++;
+            document.getElementById("statBlinks").textContent = blinkCount;
+          }
+          lastBufLen = data.morse_buffer.length;
+
+          // Morse symbols
+          const symDiv = document.getElementById("morseSymbols");
+          if (data.morse_buffer.length > 0) {
+            symDiv.innerHTML = data.morse_buffer
+              .map((s) =>
+                s === "."
+                  ? '<span class="sym-dot">·</span>'
+                  : '<span class="sym-dash">—</span>',
+              )
+              .join("");
+          } else {
+            symDiv.innerHTML =
+              '<span class="sym-empty">Waiting for blinks...</span>';
+          }
+
+          // Current letter
+          const code = data.current_letter;
+          const ch = MORSE_REV[code] || (code ? "?" : "—");
+          const lg = document.getElementById("letterGiant");
+          const prevCh = lg.textContent;
+          lg.textContent = ch;
+          if (ch !== prevCh && ch !== "—") {
+            lg.classList.remove("flash");
+            void lg.offsetWidth;
+            lg.classList.add("flash");
+            highlightCell(ch);
+          }
+          document.getElementById("letterCode").textContent = code;
+          document.getElementById("letterHint").textContent = code
+            ? MORSE_REV[code]
+              ? "Match: " + MORSE_REV[code]
+              : "No match yet"
+            : "Blink to input";
+
+          // Decoded text
+          if (data.decoded_word !== lastDecoded) {
+            const box = document.getElementById("decodedBox");
+            const ph = document.getElementById("decodedPlaceholder");
+            const dtDiv = document.getElementById("decodedText");
+            const content = document.getElementById("decodedContent");
+
+            if (data.decoded_word.length > 0) {
+              ph.style.display = "none";
+              dtDiv.style.display = "block";
+              content.textContent = data.decoded_word;
+            } else {
+              ph.style.display = "block";
+              dtDiv.style.display = "none";
+            }
+
+            box.classList.add("new-letter");
+            setTimeout(() => box.classList.remove("new-letter"), 400);
+
+            // Count letters/words/chars
+            const txt = data.decoded_word.trimEnd();
+            const words = txt.split(" ").filter((w) => w.length > 0);
+            const chars = txt.replace(/ /g, "").length;
+            if (data.decoded_word.length > lastDecoded.length) letterCount++;
+            document.getElementById("statLetters").textContent = letterCount;
+            document.getElementById("statWords").textContent = words.length;
+            document.getElementById("statChars").textContent = chars;
+
+            lastDecoded = data.decoded_word;
+          }
+
+          // Status
+          if (data.message !== lastStatus) {
+            document.getElementById("statusStrip").textContent = data.message;
+            lastStatus = data.message;
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      /* ══ COPY ══ */
+      async function copyText() {
+        const txt = document.getElementById("decodedContent").textContent;
+        if (!txt) {
+          showToast("Nothing to copy");
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(txt);
+          showToast("Copied to clipboard!");
+        } catch (e) {
+          showToast("Copy failed");
+        }
+      }
+
+      /* ══ CLEAR ══ */
+      async function clearAll() {
+        await fetch("/clear", { method: "POST" });
+        lastDecoded = "";
+        blinkCount = 0;
+        letterCount = 0;
+        lastBufLen = 0;
+        document.getElementById("statBlinks").textContent = "0";
+        document.getElementById("statLetters").textContent = "0";
+        document.getElementById("statWords").textContent = "0";
+        document.getElementById("statChars").textContent = "0";
+        document.getElementById("decodedContent").textContent = "";
+        document.getElementById("decodedPlaceholder").style.display = "block";
+        document.getElementById("decodedText").style.display = "none";
+        if (currentHighlight) {
+          currentHighlight.classList.remove("highlight");
+          currentHighlight = null;
+        }
+        showToast("Cleared!");
+      }
+
+      /* ══ BACKSPACE ══ */
+      async function backspace() {
+        await fetch("/backspace", { method: "POST" });
+        if (letterCount > 0) letterCount--;
+      }
+
+      /* ══ KEYBOARD SHORTCUTS ══ */
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !e.target.matches("input,textarea")) {
+          e.preventDefault();
+          backspace();
+        }
+        if (e.key === "Escape") clearAll();
+        if ((e.ctrlKey || e.metaKey) && e.key === "c") copyText();
+      });
+
+      /* ══ POLL ══ */
+      setInterval(fetchState, 100);
+      fetchState();
+    </script>
+  </body>
 </html>
